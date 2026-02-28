@@ -156,3 +156,9 @@ Pull requests welcome. Some ideas for contributions:
 ## License
 
 MIT
+
+---
+
+## Built with
+
+This project was built with [Claude Code](https://claude.ai/code) (Anthropic's AI coding assistant) as the primary development tool, with human direction, design decisions, and testing throughout.
