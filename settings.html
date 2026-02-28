@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Anki Gate — Settings</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #0f1117;
+      color: #e2e8f0;
+      min-height: 100vh;
+      padding: 40px;
+    }
+
+    h1 {
+      font-size: 1.5rem;
+      font-weight: 600;
+      margin-bottom: 8px;
+      color: #f8fafc;
+    }
+
+    .subtitle {
+      color: #64748b;
+      font-size: 0.875rem;
+      margin-bottom: 40px;
+    }
+
+    section {
+      background: #1e2130;
+      border: 1px solid #2d3148;
+      border-radius: 12px;
+      padding: 24px;
+      margin-bottom: 24px;
+    }
+
+    h2 {
+      font-size: 0.9rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: #7c86a2;
+      margin-bottom: 16px;
+    }
+
+    label {
+      display: block;
+      font-size: 0.875rem;
+      color: #94a3b8;
+      margin-bottom: 6px;
+    }
+
+    input[type="text"],
+    input[type="number"],
+    select {
+      width: 100%;
+      background: #0f1117;
+      border: 1px solid #2d3148;
+      border-radius: 8px;
+      color: #e2e8f0;
+      font-size: 0.9rem;
+      padding: 10px 12px;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+
+    input[type="text"]:focus,
+    input[type="number"]:focus,
+    select:focus {
+      border-color: #6366f1;
+    }
+
+    .row {
+      display: flex;
+      gap: 12px;
+      align-items: flex-end;
+      margin-bottom: 12px;
+    }
+
+    .row input { flex: 1; margin-bottom: 0; }
+
+    button {
+      background: #6366f1;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      padding: 10px 18px;
+      font-size: 0.875rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background 0.15s;
+      white-space: nowrap;
+    }
+
+    button:hover { background: #4f52c9; }
+
+    button.danger {
+      background: transparent;
+      border: 1px solid #ef4444;
+      color: #ef4444;
+      padding: 6px 12px;
+      font-size: 0.8rem;
+    }
+
+    button.danger:hover { background: #ef444420; }
+
+    button.secondary {
+      background: #2d3148;
+      color: #94a3b8;
+    }
+
+    button.secondary:hover { background: #363d5a; }
+
+    .site-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+
+    .site-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: #0f1117;
+      border: 1px solid #2d3148;
+      border-radius: 8px;
+      padding: 10px 14px;
+      font-size: 0.875rem;
+    }
+
+    .site-item span { color: #e2e8f0; }
+
+    .param-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+
+    .anki-status {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.85rem;
+      margin-bottom: 16px;
+    }
+
+    .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #64748b;
+    }
+
+    .dot.green { background: #22c55e; }
+    .dot.red   { background: #ef4444; }
+
+    .save-bar {
+      display: flex;
+      justify-content: flex-end;
+      gap: 12px;
+      margin-top: 8px;
+    }
+
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      background: #22c55e;
+      color: #fff;
+      padding: 12px 20px;
+      border-radius: 8px;
+      font-size: 0.875rem;
+      font-weight: 500;
+      opacity: 0;
+      transform: translateY(8px);
+      transition: all 0.2s;
+      pointer-events: none;
+    }
+
+    .toast.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    select option { background: #1e2130; }
+  </style>
+</head>
+<body>
+  <h1>Anki Gate</h1>
+  <p class="subtitle">Configure which sites require an Anki challenge to unlock.</p>
+
+  <!-- Anki connection status -->
+  <section>
+    <h2>Anki Connection</h2>
+    <div class="anki-status">
+      <div class="dot" id="ankiDot"></div>
+      <span id="ankiStatusText">Checking...</span>
+    </div>
+    <button class="secondary" id="refreshAnki">Refresh</button>
+  </section>
+
+  <!-- Active deck -->
+  <section>
+    <h2>Active Deck</h2>
+    <label for="deckSelect">Questions pulled from this deck for all blocked sites</label>
+    <select id="deckSelect">
+      <option value="">— connect Anki to load decks —</option>
+    </select>
+  </section>
+
+  <!-- Blocked sites -->
+  <section>
+    <h2>Blocked Sites</h2>
+    <div class="site-list" id="siteList"></div>
+    <div class="row">
+      <input type="text" id="newSite" placeholder="e.g. reddit.com" />
+      <button id="addSite">Add</button>
+    </div>
+  </section>
+
+  <!-- Parameters -->
+  <section>
+    <h2>Parameters</h2>
+    <div class="param-grid">
+      <div>
+        <label for="questionsInput">Questions per session</label>
+        <input type="number" id="questionsInput" min="1" max="10" value="5" />
+      </div>
+      <div>
+        <label for="minutesInput">Unlock duration (minutes)</label>
+        <input type="number" id="minutesInput" min="1" max="480" value="90" />
+      </div>
+    </div>
+  </section>
+
+  <div class="save-bar">
+    <button id="saveBtn">Save Settings</button>
+  </div>
+
+  <div class="toast" id="toast">Settings saved!</div>
+
+  <script src="anki.js"></script>
+  <script src="settings.js"></script>
+</body>
+</html>

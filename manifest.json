@@ -1,0 +1,34 @@
+{
+  "manifest_version": 3,
+  "name": "Anki Gate",
+  "version": "1.0",
+  "description": "Answer Anki cards to unlock blocked sites.",
+
+  "permissions": [
+    "storage",
+    "tabs"
+  ],
+
+  "host_permissions": [
+    "http://localhost:8765/",
+    "<all_urls>"
+  ],
+
+  "background": {
+    "service_worker": "background.js"
+  },
+
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "Anki Gate"
+  },
+
+  "options_page": "settings.html",
+
+  "web_accessible_resources": [
+    {
+      "resources": ["challenge.html"],
+      "matches": ["<all_urls>"]
+    }
+  ]
+}
