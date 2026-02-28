@@ -6,6 +6,18 @@ A Chrome extension that blocks distracting websites until you complete a short A
 
 ---
 
+## Philosophy
+
+Most distraction blockers just say no. Anki Gate says *not yet — do something useful first.*
+
+The core idea: before you can visit a blocked site, you review a handful of cards from your actual Anki deck. Not a separate flashcard system you have to maintain alongside Anki — your real decks, your real cards, your real scheduling. Every review you do in Anki Gate is submitted back to Anki with proper ease ratings (Again / Hard / Good / Easy), updates your card intervals, and syncs to AnkiWeb exactly like a review done inside Anki itself.
+
+This means the extension does two things at once: it adds friction to mindless browsing, and it keeps your Anki reviews from piling up. If you have a 500-card SQL deck you've been neglecting, every Reddit visit chips away at it.
+
+It also means you can use any deck from [Anki's shared deck library](https://ankiweb.net/shared/decks) — thousands of community-made decks for data science, medicine, law, languages, and more — without creating a single card yourself.
+
+---
+
 ## How it works
 
 1. You try to visit a blocked site (Reddit, X, YouTube, etc.)
@@ -18,9 +30,10 @@ A Chrome extension that blocks distracting websites until you complete a short A
 
 ## Features
 
-- **Real Anki integration** — pulls live cards from any deck via AnkiConnect. Your reviews count in Anki's scheduler, streaks, and AnkiWeb sync.
-- **Full card rendering** — images, audio, and card CSS all render faithfully on the challenge page
-- **Standard ease buttons** — Again / Hard / Good / Easy (1–4 keyboard shortcuts). Not a fake quiz.
+- **Your actual Anki decks** — connects to Anki via AnkiConnect. Select any deck you already own, including community decks. No separate card management.
+- **Real SRS feedback** — ease ratings go back to Anki and update card intervals. Reviews appear in your history and sync to AnkiWeb. These count.
+- **Full card rendering** — images, audio, and card CSS render faithfully, including community decks with rich media
+- **Standard ease buttons** — Again / Hard / Good / Easy, same as Anki's own interface. `Again` sends the card to the end of the session queue; you must clear it before unlocking.
 - **Due + new cards** — pulls overdue reviews first, fills remaining slots with new cards
 - **Per-site unlock timer** — each blocked site has its own 90-minute window (configurable)
 - **Popup status** — see which sites are locked/unlocked and how much time remains
