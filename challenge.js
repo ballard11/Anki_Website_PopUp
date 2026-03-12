@@ -163,14 +163,38 @@ function nextCard() {
 }
 
 async function finishSession() {
-  // Tell background to unlock the site
   await chrome.runtime.sendMessage({ type: "UNLOCK_SITE", hostname: blockedSite });
+
+  const settings = await chrome.runtime.sendMessage({ type: "GET_SETTINGS", hostname: blockedSite });
+  const { unlockMinutes = 90, activeDeck = "" } = settings;
+
+  // Check if the daily Anki queue is now empty
+  let remaining = null;
+  try {
+    const stats = await getDeckStats(activeDeck);
+    if (stats) {
+      remaining = stats.new_count + stats.learn_count + stats.review_count;
+    }
+  } catch { /* Anki may have closed */ }
+
+  const dailyDone = remaining === 0;
+
+  if (dailyDone) {
+    await chrome.runtime.sendMessage({ type: "MARK_DAILY_DONE", deckName: activeDeck });
+  }
 
   setScreen("doneScreen");
 
-  const { unlockMinutes = 90 } = await chrome.runtime.sendMessage({ type: "GET_SETTINGS", hostname: blockedSite });
-  document.getElementById("doneMessage").textContent =
-    `${blockedSite} is unlocked for ${unlockMinutes} minutes.`;
+  if (dailyDone) {
+    document.getElementById("doneHeading").textContent = "Today's queue is complete! 🎉";
+    document.getElementById("doneMessage").textContent =
+      "All blocked sites are unlocked for the rest of the day.";
+  } else {
+    document.getElementById("doneHeading").textContent = "Session complete!";
+    const remainingText = remaining !== null ? ` ${remaining} cards remaining in today's queue.` : "";
+    document.getElementById("doneMessage").textContent =
+      `${blockedSite} unlocked for ${unlockMinutes} minutes.${remainingText}`;
+  }
 
   document.getElementById("proceedBtn").addEventListener("click", () => {
     location.href = destUrl;
@@ -244,11 +268,12 @@ async function renderStats(deckName) {
   try {
     const stats = await getDeckStats(deckName);
     if (!stats) return;
+    const remaining = stats.new_count + stats.learn_count + stats.review_count;
     document.getElementById("statsBar").innerHTML = `
       <div class="stat">New <span>${stats.new_count}</span></div>
-      <div class="stat">Learning <span>${stats.learn_count}</span></div>
+      <div class="stat">Learn <span>${stats.learn_count}</span></div>
       <div class="stat">Review <span>${stats.review_count}</span></div>
-      <div class="stat">Deck <span>${deckName}</span></div>
+      <div class="stat" style="margin-left:auto;color:#94a3b8;">Today <span style="color:${remaining === 0 ? "#22c55e" : "#f59e0b"}">${remaining}</span></div>
     `;
   } catch { /* stats are optional */ }
 }

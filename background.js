@@ -28,6 +28,20 @@ async function useBypassPass() {
   return { ok: true };
 }
 
+// --- Daily queue completion ---
+
+async function isDailyDone(deckName) {
+  if (!deckName) return false;
+  const { dailyDone = {} } = await chrome.storage.session.get("dailyDone");
+  return !!dailyDone[deckName];
+}
+
+async function markDailyDone(deckName) {
+  const { dailyDone = {} } = await chrome.storage.session.get("dailyDone");
+  dailyDone[deckName] = true;
+  await chrome.storage.session.set({ dailyDone });
+}
+
 // Default settings (overridden by chrome.storage)
 const DEFAULTS = {
   blockedSites: [],       // e.g. ["reddit.com", "x.com"]
@@ -127,6 +141,13 @@ async function maybeBlock(tabId, url) {
     return;
   }
 
+  // If the user has completed today's full Anki daily queue, don't block at all
+  const { activeDeck = "" } = await chrome.storage.sync.get("activeDeck");
+  if (await isDailyDone(activeDeck)) {
+    console.log("[AnkiGate] daily queue done, skipping");
+    return;
+  }
+
   console.log("[AnkiGate] BLOCKING", hostname);
   const challengeUrl =
     CHALLENGE_PAGE + "?site=" + encodeURIComponent(hostname) +
@@ -192,6 +213,11 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
 
   if (message.type === "USE_BYPASS_PASS") {
     useBypassPass().then(sendResponse);
+    return true;
+  }
+
+  if (message.type === "MARK_DAILY_DONE") {
+    markDailyDone(message.deckName).then(() => sendResponse({ ok: true }));
     return true;
   }
 });
