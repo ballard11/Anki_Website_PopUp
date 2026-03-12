@@ -11,7 +11,12 @@
       background: #0f1117;
       color: #e2e8f0;
       min-height: 100vh;
-      padding: 40px;
+      padding: 40px 24px;
+    }
+
+    .container {
+      max-width: 680px;
+      margin: 0 auto;
     }
 
     h1 {
@@ -122,7 +127,7 @@
     .site-item {
       display: flex;
       align-items: center;
-      justify-content: space-between;
+      gap: 12px;
       background: #0f1117;
       border: 1px solid #2d3148;
       border-radius: 8px;
@@ -130,7 +135,36 @@
       font-size: 0.875rem;
     }
 
-    .site-item span { color: #e2e8f0; }
+    .site-host {
+      flex: 1;
+      color: #e2e8f0;
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .site-params {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      flex-shrink: 0;
+    }
+
+    .site-params label {
+      font-size: 0.72rem;
+      color: #64748b;
+      margin: 0;
+      white-space: nowrap;
+    }
+
+    .site-params input {
+      width: 54px;
+      padding: 4px 6px;
+      font-size: 0.8rem;
+      text-align: center;
+      margin-bottom: 0;
+    }
 
     .param-grid {
       display: grid;
@@ -188,6 +222,7 @@
   </style>
 </head>
 <body>
+<div class="container">
   <h1>Anki Gate</h1>
   <p class="subtitle">Configure which sites require an Anki challenge to unlock.</p>
 
@@ -213,24 +248,36 @@
   <!-- Blocked sites -->
   <section>
     <h2>Blocked Sites</h2>
-    <div class="site-list" id="siteList"></div>
-    <div class="row">
-      <input type="text" id="newSite" placeholder="e.g. reddit.com" />
-      <button id="addSite">Add</button>
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;">
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin:0;color:#e2e8f0;font-size:0.875rem;">
+        <input type="checkbox" id="blockAllSites" style="width:auto;margin:0;accent-color:#6366f1;" />
+        Block all sites
+      </label>
+      <span style="font-size:0.8rem;color:#64748b;">Challenge on every site you visit</span>
+    </div>
+    <div id="specificSitesSection">
+      <div class="site-list" id="siteList"></div>
+      <div class="row">
+        <input type="text" id="newSite" placeholder="e.g. reddit.com" />
+        <button id="addSite">Add</button>
+      </div>
     </div>
   </section>
 
   <!-- Parameters -->
   <section>
-    <h2>Parameters</h2>
+    <h2>Default Parameters</h2>
+    <p style="font-size:0.8rem;color:#64748b;margin-bottom:14px;">
+      Applied to new sites. Each site can override these individually.
+    </p>
     <div class="param-grid">
       <div>
         <label for="questionsInput">Questions per session</label>
-        <input type="number" id="questionsInput" min="1" max="10" value="5" />
+        <input type="number" id="questionsInput" min="1" max="20" value="5" />
       </div>
       <div>
         <label for="minutesInput">Unlock duration (minutes)</label>
-        <input type="number" id="minutesInput" min="1" max="480" value="90" />
+        <input type="number" id="minutesInput" min="1" max="1440" value="90" />
       </div>
     </div>
   </section>
@@ -240,6 +287,7 @@
   </div>
 
   <div class="toast" id="toast">Settings saved!</div>
+</div>
 
   <script src="anki.js"></script>
   <script src="settings.js"></script>

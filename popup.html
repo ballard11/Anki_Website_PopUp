@@ -39,11 +39,23 @@
     }
     button:hover { background: #1e2130; }
     .empty { color: #475569; font-size: 0.82rem; }
+    .bypass-bar { margin-top: 14px; }
+    .btn-bypass {
+      width: 100%; border: 1px solid #ca8a04; color: #fbbf24;
+      border-radius: 6px; padding: 8px 12px; font-size: 0.82rem;
+      cursor: pointer; background: none; text-align: left;
+    }
+    .btn-bypass:hover { background: #ca8a0418; }
+    .btn-bypass:disabled { border-color: #2d3148; color: #475569; cursor: default; background: none; }
+    .bypass-active { border-color: #22c55e !important; color: #22c55e !important; cursor: default; }
   </style>
 </head>
 <body>
   <h1>Anki Gate</h1>
   <div id="list"><p class="empty">No sites configured.</p></div>
+  <div class="bypass-bar">
+    <button class="btn-bypass" id="bypassBtn"></button>
+  </div>
   <div class="footer">
     <button id="settingsBtn">Settings</button>
   </div>

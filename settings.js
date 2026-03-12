@@ -1,5 +1,6 @@
 // Settings page logic
 
+// blockedSites is now [{host, questions, minutes}]
 let blockedSites = [];
 
 // --- Anki connection ---
@@ -57,9 +58,21 @@ function renderSiteList() {
     const item = document.createElement("div");
     item.className = "site-item";
     item.innerHTML = `
-      <span>${site}</span>
+      <span class="site-host">${site.host}</span>
+      <div class="site-params">
+        <label>Q</label>
+        <input type="number" class="site-questions" value="${site.questions}" min="1" max="20" title="Questions required to unlock" />
+        <label>min</label>
+        <input type="number" class="site-minutes" value="${site.minutes}" min="1" max="1440" title="Unlock duration in minutes" />
+      </div>
       <button class="danger" data-index="${i}">Remove</button>
     `;
+    item.querySelector(".site-questions").addEventListener("change", (e) => {
+      blockedSites[i].questions = parseInt(e.target.value, 10) || 5;
+    });
+    item.querySelector(".site-minutes").addEventListener("change", (e) => {
+      blockedSites[i].minutes = parseInt(e.target.value, 10) || 90;
+    });
     item.querySelector("button").addEventListener("click", () => {
       blockedSites.splice(i, 1);
       renderSiteList();
@@ -72,11 +85,13 @@ document.getElementById("addSite").addEventListener("click", () => {
   const input = document.getElementById("newSite");
   const val = input.value.trim().toLowerCase().replace(/^https?:\/\//, "").replace(/^www\./, "").split("/")[0];
   if (!val) return;
-  if (blockedSites.includes(val)) {
+  if (blockedSites.some((s) => s.host === val)) {
     input.value = "";
     return;
   }
-  blockedSites.push(val);
+  const questions = parseInt(document.getElementById("questionsInput").value, 10) || 5;
+  const minutes = parseInt(document.getElementById("minutesInput").value, 10) || 90;
+  blockedSites.push({ host: val, questions, minutes });
   renderSiteList();
   input.value = "";
 });
@@ -92,11 +107,22 @@ async function loadSettings() {
     "blockedSites",
     "questionsPerSession",
     "unlockMinutes",
+    "blockAllSites",
   ]);
 
-  blockedSites = data.blockedSites ?? [];
-  document.getElementById("questionsInput").value = data.questionsPerSession ?? 5;
-  document.getElementById("minutesInput").value = data.unlockMinutes ?? 90;
+  const defaultQ = data.questionsPerSession ?? 5;
+  const defaultMin = data.unlockMinutes ?? 90;
+
+  // Migrate legacy string[] format to object[]
+  blockedSites = (data.blockedSites ?? []).map((site) =>
+    typeof site === "string"
+      ? { host: site, questions: defaultQ, minutes: defaultMin }
+      : site
+  );
+
+  document.getElementById("questionsInput").value = defaultQ;
+  document.getElementById("minutesInput").value = defaultMin;
+  document.getElementById("blockAllSites").checked = data.blockAllSites ?? false;
   renderSiteList();
 }
 
@@ -106,12 +132,14 @@ document.getElementById("saveBtn").addEventListener("click", async () => {
   const activeDeck = document.getElementById("deckSelect").value;
   const questionsPerSession = parseInt(document.getElementById("questionsInput").value, 10);
   const unlockMinutes = parseInt(document.getElementById("minutesInput").value, 10);
+  const blockAllSites = document.getElementById("blockAllSites").checked;
 
   await chrome.storage.sync.set({
     blockedSites,
     activeDeck,
     questionsPerSession: isNaN(questionsPerSession) ? 5 : questionsPerSession,
     unlockMinutes: isNaN(unlockMinutes) ? 90 : unlockMinutes,
+    blockAllSites,
   });
 
   const toast = document.getElementById("toast");

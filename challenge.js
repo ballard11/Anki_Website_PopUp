@@ -46,30 +46,105 @@ function renderPips() {
     `${completedCount} / ${totalRequired}`;
 }
 
+function renderCardInFrame(container, html, css) {
+  container.innerHTML = "";
+  const iframe = document.createElement("iframe");
+  iframe.style.cssText = "width:100%;border:none;display:block;";
+  container.appendChild(iframe);
+
+  // Strip inline scripts — blocked by extension CSP anyway
+  const cleanHtml = html.replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, "");
+
+  const doc = `<!DOCTYPE html><html><head>
+    <meta charset="UTF-8">
+    <style>
+      body { margin:0; padding:0; background:transparent; color:#e2e8f0;
+             font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+             font-size:1.05rem; line-height:1.6; }
+      img { max-width:100%; height:auto; }
+      #image-occlusion-container {
+        position:relative; display:inline-block; max-width:100%;
+      }
+      ${css ?? ""}
+    </style>
+  </head><body>${cleanHtml}</body></html>`;
+
+  const url = URL.createObjectURL(new Blob([doc], { type: "text/html" }));
+  iframe.onload = () => {
+    URL.revokeObjectURL(url);
+    const iDoc = iframe.contentDocument;
+    if (!iDoc) return;
+    // Render IO occlusions using parent-frame JS — no CSP issues
+    renderIOOcclusions(iDoc);
+    iframe.style.height = iDoc.body.scrollHeight + "px";
+  };
+  iframe.src = url;
+}
+
+// Draw Image Occlusion rectangles directly onto the iframe's canvas.
+// Called from the parent frame after load — avoids all CSP restrictions.
+function renderIOOcclusions(iDoc) {
+  const img    = iDoc.querySelector("#image-occlusion-container img");
+  const canvas = iDoc.getElementById("image-occlusion-canvas");
+  if (!img || !canvas) return;
+
+  function draw() {
+    const w = img.naturalWidth;
+    const h = img.naturalHeight;
+    if (!w || !h) return;
+
+    canvas.width  = w;
+    canvas.height = h;
+    canvas.style.cssText = "position:absolute;top:0;left:0;width:100%;height:100%;";
+
+    const container = iDoc.getElementById("image-occlusion-container");
+    if (container) {
+      container.style.position = "relative";
+      container.style.display  = "inline-block";
+    }
+
+    const ctx = canvas.getContext("2d");
+
+    // Gray rectangles for inactive occlusions that should stay covered
+    iDoc.querySelectorAll(".cloze-inactive").forEach(el => {
+      if (el.dataset.occludeinactive !== "1") return;
+      paintIORect(ctx, el, "rgb(80,80,80)", w, h);
+    });
+
+    // Blue rectangle for the active occlusion being tested
+    iDoc.querySelectorAll(".cloze").forEach(el => {
+      paintIORect(ctx, el, "rgb(30,144,255)", w, h);
+    });
+  }
+
+  if (img.complete && img.naturalWidth) {
+    draw();
+  } else {
+    img.addEventListener("load", draw, { once: true });
+  }
+}
+
+function paintIORect(ctx, el, color, imgW, imgH) {
+  const left   = parseFloat(el.dataset.left)   * imgW;
+  const top    = parseFloat(el.dataset.top)    * imgH;
+  const width  = parseFloat(el.dataset.width)  * imgW;
+  const height = parseFloat(el.dataset.height) * imgH;
+  ctx.fillStyle = color;
+  ctx.fillRect(left, top, width, height);
+}
+
 function showQuestion(card) {
   currentCard = card;
 
-  document.getElementById("questionContent").innerHTML = card.question;
-  document.getElementById("answerContent").innerHTML = card.answer;
+  // Render question immediately (visible, so scrollHeight will be correct)
+  renderCardInFrame(document.getElementById("questionContent"), card.question, card.css);
+
+  // Clear answer content — rendered lazily when Show Answer is clicked
+  document.getElementById("answerContent").innerHTML = "";
 
   // New card badge
   const badge = document.getElementById("newCardBadge");
   if (badge) badge.style.display = card.isNew ? "inline-block" : "none";
-
-  // Inject card's own CSS scoped inside the card content areas
-  let styleEl = document.getElementById("injectedCardStyle");
-  if (!styleEl) {
-    styleEl = document.createElement("style");
-    styleEl.id = "injectedCardStyle";
-    document.head.appendChild(styleEl);
-  }
-  styleEl.textContent = card.css
-    ? card.css.split("}").map((rule) => {
-        const trimmed = rule.trim();
-        if (!trimmed) return "";
-        return `.card-content ${trimmed}}`;
-      }).join("\n")
-    : "";
 
   // Reset answer visibility
   document.getElementById("answerSide").style.display = "none";
@@ -93,7 +168,7 @@ async function finishSession() {
 
   setScreen("doneScreen");
 
-  const { unlockMinutes = 90 } = await chrome.storage.sync.get("unlockMinutes");
+  const { unlockMinutes = 90 } = await chrome.runtime.sendMessage({ type: "GET_SETTINGS", hostname: blockedSite });
   document.getElementById("doneMessage").textContent =
     `${blockedSite} is unlocked for ${unlockMinutes} minutes.`;
 
@@ -108,6 +183,10 @@ document.getElementById("showAnswerBtn").addEventListener("click", () => {
   document.getElementById("answerSide").style.display = "block";
   document.getElementById("showAnswerBtn").style.display = "none";
   document.getElementById("answerActions").style.display = "flex";
+  // Render answer iframe now that the container is visible, so scrollHeight is correct
+  if (currentCard) {
+    renderCardInFrame(document.getElementById("answerContent"), currentCard.answer, currentCard.css);
+  }
 });
 
 async function handleAnswer(ease) {
@@ -181,8 +260,8 @@ async function init() {
 
   document.getElementById("siteLabel").textContent = blockedSite;
 
-  // Get settings from background
-  const settings = await chrome.runtime.sendMessage({ type: "GET_SETTINGS" });
+  // Get settings from background (hostname gets per-site overrides applied)
+  const settings = await chrome.runtime.sendMessage({ type: "GET_SETTINGS", hostname: blockedSite });
   totalRequired = settings.questionsPerSession ?? 5;
 
   if (!settings.activeDeck) {

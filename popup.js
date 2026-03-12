@@ -1,3 +1,25 @@
+async function renderBypass() {
+  const btn = document.getElementById("bypassBtn");
+  const status = await chrome.runtime.sendMessage({ type: "GET_BYPASS_STATUS" });
+  const { available, active, minutesLeft } = status ?? { available: true, active: false, minutesLeft: 0 };
+
+  if (active) {
+    btn.textContent = `Emergency pass active — ${minutesLeft}m left`;
+    btn.classList.add("bypass-active");
+    btn.disabled = true;
+  } else if (available) {
+    btn.textContent = "Use emergency pass (30 min, once per day)";
+    btn.onclick = async () => {
+      btn.disabled = true;
+      const result = await chrome.runtime.sendMessage({ type: "USE_BYPASS_PASS" });
+      if (result?.ok) renderBypass();
+    };
+  } else {
+    btn.textContent = "Emergency pass used today";
+    btn.disabled = true;
+  }
+}
+
 async function render() {
   const { blockedSites = [] } = await chrome.storage.sync.get("blockedSites");
   const list = document.getElementById("list");
@@ -34,3 +56,4 @@ document.getElementById("settingsBtn").addEventListener("click", () => {
 });
 
 render();
+renderBypass();
