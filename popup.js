@@ -1,6 +1,9 @@
 async function renderBypass() {
   const btn = document.getElementById("bypassBtn");
-  const status = await chrome.runtime.sendMessage({ type: "GET_BYPASS_STATUS" });
+  let status;
+  try {
+    status = await chrome.runtime.sendMessage({ type: "GET_BYPASS_STATUS" });
+  } catch (_) {}
   const { available, active, minutesLeft } = status ?? { available: true, active: false, minutesLeft: 0 };
 
   if (active) {
